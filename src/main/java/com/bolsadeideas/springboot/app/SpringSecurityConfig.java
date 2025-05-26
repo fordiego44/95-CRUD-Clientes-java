@@ -35,7 +35,7 @@ public class SpringSecurityConfig {
      return http
              .authorizeHttpRequests(
                  (authz) -> authz
-                     .requestMatchers("/", "/css/**", "/js/**", "/images/**", "/listar")
+                     .requestMatchers("/", "/css/**", "/js/**", "/images/**", "/listar**", "/locale", "/api/clientes/**")
                      .permitAll()
                      .anyRequest().authenticated()
              )
