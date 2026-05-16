@@ -48,6 +48,13 @@ pipeline {
             }
         }
 
+        stage('Docker Build') {
+            steps {
+                sh "docker build -t ${env.REPO_NAME}:latest ."
+                sh 'docker images'
+            }
+        }
+
         stage('Quality Gate') {
             steps {
                 waitForQualityGate abortPipeline: true
