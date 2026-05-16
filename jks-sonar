@@ -1,0 +1,63 @@
+pipeline {
+    agent any
+
+    environment {
+        SONAR_SERVER = 'sonarqube-server'
+        REPO_NAME = "${env.GIT_URL.split('/').last().split('\\.').first()}"
+    }
+
+    stages { 
+
+        stage('Compilar con Maven') {
+            agent {
+                docker {
+                    image 'maven:3.8.4-openjdk-17-slim'
+                    args '-u root'
+                }
+            }
+            steps {
+                sh 'mvn clean package -DskipTests'
+                // Publicar artifact (.jar)
+                archiveArtifacts artifacts: 'target/*.jar', followSymlinks: false
+            }
+        }
+
+        stage('Análisis SonarQube') {
+            agent {
+                docker {
+                    image 'maven:3.8.4-openjdk-17-slim'
+                    args '-u root'
+                }
+            }
+            steps {
+                withSonarQubeEnv("${env.SONAR_SERVER}") {
+                    sh """
+                        mvn sonar:sonar \
+                        -Dsonar.organization=diego-armando \
+                        -Dsonar.projectKey=${env.REPO_NAME} \
+                        -Dsonar.projectName=${env.REPO_NAME} \
+                        -Dsonar.sources=src/main/java \
+                        -Dsonar.java.binaries=target/classes \
+                        -Dsonar.qualitygate.wait=true
+                    """
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                waitForQualityGate abortPipeline: true
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Compilación y análisis SonarQube exitosos."
+        }
+
+        failure {
+            echo "El análisis de SonarQube falló o el Quality Gate no se cumplió."
+        }
+    }
+}
