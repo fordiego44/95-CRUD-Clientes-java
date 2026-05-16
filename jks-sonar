@@ -40,7 +40,7 @@ pipeline {
                                 -Dsonar.projectKey=${env.REPO_NAME} \
                                 -Dsonar.projectName=${env.REPO_NAME} \
                                 -Dsonar.sources=src/main/java \
-                                -Dsonar.qualitygate.wait=true
+                               // -Dsonar.qualitygate.wait=true
                             """
                         }
                     }
@@ -55,7 +55,25 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
+    stage('Publish Docker Image') {
+        steps {
+    
+            withCredentials([usernamePassword(
+                credentialsId: 'dockerhub-credentials',
+                usernameVariable: 'DOCKER_USER',
+                passwordVariable: 'DOCKER_PASS'
+            )]) {
+    
+                sh 'echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin'
+    
+                sh "docker tag 95-crud-clientes-java:latest $DOCKER_USER/95-crud-clientes-java:latest"
+    
+                sh "docker push $DOCKER_USER/95-crud-clientes-java:latest"
+            }
+        }
+    }
+
+    stage('Quality Gate') {
             steps {
                 waitForQualityGate abortPipeline: true
             }
